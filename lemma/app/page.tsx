@@ -14,7 +14,7 @@ export default async function Home() {
         <h1 className="font-display text-7xl font-bold italic leading-none tracking-tight">
           lemma<span className="text-[#C45C1A] not-italic">.</span>
         </h1>
-        <p className="font-mono text-sm text-zinc-500 tracking-wide">
+        <p className="font-mono text-sm text-zinc-600 dark:text-zinc-400 tracking-wide">
           la parola del giorno
         </p>
       </div>

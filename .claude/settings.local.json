@@ -11,7 +11,8 @@
       "Bash(npx tsc:*)",
       "mcp__supabase__get_project",
       "mcp__supabase__execute_sql",
-      "mcp__supabase__get_advisors"
+      "mcp__supabase__get_advisors",
+      "Bash(node -e \"const tw = require\\(''tailwindcss/package.json''\\); console.log\\(tw.version\\)\")"
     ]
   },
   "enableAllProjectMcpServers": true,

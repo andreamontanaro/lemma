@@ -16,7 +16,7 @@ export default function GoogleSignInButton() {
   return (
     <button
       onClick={handleSignIn}
-      className="flex items-center gap-3 px-6 py-3 rounded-full border border-black/10 bg-white text-foreground font-mono text-sm font-medium shadow-sm transition-colors hover:bg-zinc-50 active:bg-zinc-100"
+      className="flex items-center gap-3 px-6 py-3 rounded-full border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 font-mono text-sm font-medium shadow-sm transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 active:bg-zinc-200 dark:active:bg-zinc-700"
     >
       <GoogleIcon />
       Accedi con Google

@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Class-based dark mode for Tailwind utilities */
+@variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -18,11 +21,10 @@
   --color-tile-empty: #FFFFFF;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Dark CSS variables — applied via .dark class (set by JS) */
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 body {

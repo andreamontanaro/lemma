@@ -11,13 +11,13 @@ export default function PlayButton() {
       <div className="flex gap-3">
         <Link
           href="/play/it"
-          className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#0F2044] text-white font-mono text-sm font-medium"
+          className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#0F2044] text-white font-mono text-sm font-medium hover:bg-[#1a3566] transition-colors"
         >
           🇮🇹 Italiano
         </Link>
         <Link
           href="/play/en"
-          className="flex items-center gap-2 px-6 py-3 rounded-full border border-black/10 font-mono text-sm font-medium hover:bg-zinc-50 transition-colors"
+          className="flex items-center gap-2 px-6 py-3 rounded-full border border-zinc-300 dark:border-zinc-600 text-zinc-900 dark:text-zinc-100 font-mono text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
         >
           🇬🇧 English
         </Link>
@@ -28,7 +28,7 @@ export default function PlayButton() {
   return (
     <button
       onClick={() => setOpen(true)}
-      className="px-12 py-3 rounded-full bg-[#0F2044] text-white font-mono text-sm font-medium tracking-wide hover:bg-[#162d5e] transition-colors"
+      className="px-12 py-3 rounded-full bg-[#0F2044] text-white font-mono text-sm font-medium tracking-wide hover:bg-[#1a3566] transition-colors"
     >
       Gioca
     </button>

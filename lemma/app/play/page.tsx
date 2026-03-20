@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import PlayButton from '@/components/PlayButton'
+import SignOutButton from '@/components/SignOutButton'
 
 interface Session {
   completed: boolean
@@ -73,11 +74,15 @@ export default async function PlayPage() {
         lemma<span className="text-[#C45C1A]">.</span>
       </h1>
 
-      {firstName && (
-        <p className="font-mono text-sm text-zinc-500 -mt-4">
-          Ciao, {firstName}
-        </p>
-      )}
+      {/* Greeting + sign out */}
+      <div className="flex flex-col items-center gap-2 -mt-4">
+        {firstName && (
+          <p className="font-mono text-sm text-zinc-700 dark:text-zinc-300">
+            Ciao, {firstName}
+          </p>
+        )}
+        <SignOutButton />
+      </div>
 
       {/* Stats */}
       <div className="w-full grid grid-cols-3 gap-2 text-center">
@@ -86,9 +91,11 @@ export default async function PlayPage() {
           { label: 'Vittorie', value: `${stats.winPct}%` },
           { label: 'Streak\ncorrente', value: stats.streak },
         ].map(({ label, value }) => (
-          <div key={label} className="flex flex-col gap-1 py-4 border border-zinc-100 rounded-xl">
-            <span className="font-display text-3xl font-bold leading-none">{value}</span>
-            <span className="font-mono text-[10px] text-zinc-400 whitespace-pre-line leading-tight mt-1">
+          <div key={label} className="flex flex-col gap-1 py-4 border border-zinc-200 dark:border-zinc-700 rounded-xl">
+            <span className="font-display text-3xl font-bold leading-none text-zinc-900 dark:text-zinc-100">
+              {value}
+            </span>
+            <span className="font-mono text-[10px] text-zinc-600 dark:text-zinc-400 whitespace-pre-line leading-tight mt-1">
               {label}
             </span>
           </div>
@@ -97,7 +104,7 @@ export default async function PlayPage() {
 
       {/* Win distribution */}
       <div className="w-full flex flex-col gap-2">
-        <p className="font-mono text-[10px] text-zinc-400 uppercase tracking-widest">
+        <p className="font-mono text-[10px] text-zinc-600 dark:text-zinc-400 uppercase tracking-widest">
           Distribuzione vittorie
         </p>
         {[1, 2, 3, 4, 5, 6].map(n => {
@@ -105,14 +112,14 @@ export default async function PlayPage() {
           const pct = Math.max(Math.round((count / maxDist) * 100), count > 0 ? 8 : 0)
           return (
             <div key={n} className="flex items-center gap-2">
-              <span className="font-mono text-xs text-zinc-400 w-3 shrink-0">{n}</span>
-              <div className="flex-1 h-6 bg-zinc-100 rounded-sm overflow-hidden">
+              <span className="font-mono text-xs text-zinc-600 dark:text-zinc-400 w-3 shrink-0">{n}</span>
+              <div className="flex-1 h-6 bg-zinc-200 dark:bg-zinc-700 rounded-sm overflow-hidden">
                 <div
-                  className="h-full bg-[#0F2044] rounded-sm flex items-center justify-end pr-1.5 transition-all"
+                  className="h-full bg-zinc-700 dark:bg-zinc-400 rounded-sm flex items-center justify-end pr-1.5 transition-all"
                   style={{ width: `${pct}%` }}
                 >
                   {count > 0 && (
-                    <span className="font-mono text-[10px] text-white leading-none">{count}</span>
+                    <span className="font-mono text-[10px] text-white dark:text-zinc-900 leading-none">{count}</span>
                   )}
                 </div>
               </div>
