@@ -8,8 +8,14 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-playfair);
+  --font-mono: var(--font-dm-mono);
+
+  /* Gameplay semantic tokens */
+  --color-correct: #0F2044;
+  --color-present: #C45C1A;
+  --color-absent: #C8CDD8;
+  --color-tile-empty: #FFFFFF;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,5 +28,4 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
