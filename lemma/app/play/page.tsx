@@ -68,10 +68,10 @@ export default async function PlayPage() {
   const maxDist = Math.max(...Object.values(stats.distribution), 1)
 
   return (
-    <main className="flex flex-1 flex-col items-center px-6 pt-14 pb-12 gap-10 max-w-xs mx-auto w-full">
+    <main className="flex flex-1 flex-col items-center px-6 pt-16 pb-12 gap-10 max-w-xs mx-auto w-full">
 
       <h1 className="font-display text-5xl font-bold italic">
-        lemma<span className="text-[#C45C1A]">.</span>
+        lemma<span className="text-present">.</span>
       </h1>
 
       {/* Greeting + sign out */}
@@ -95,7 +95,7 @@ export default async function PlayPage() {
             <span className="font-display text-3xl font-bold leading-none text-zinc-900 dark:text-zinc-100">
               {value}
             </span>
-            <span className="font-mono text-[10px] text-zinc-600 dark:text-zinc-400 whitespace-pre-line leading-tight mt-1">
+            <span className="font-mono text-xs text-zinc-600 dark:text-zinc-300 whitespace-pre-line leading-tight mt-1">
               {label}
             </span>
           </div>
@@ -104,7 +104,7 @@ export default async function PlayPage() {
 
       {/* Win distribution */}
       <div className="w-full flex flex-col gap-2">
-        <p className="font-mono text-[10px] text-zinc-600 dark:text-zinc-400 uppercase tracking-widest">
+        <p className="font-mono text-xs text-zinc-600 dark:text-zinc-300 uppercase tracking-widest">
           Distribuzione vittorie
         </p>
         {[1, 2, 3, 4, 5, 6].map(n => {
@@ -112,14 +112,14 @@ export default async function PlayPage() {
           const pct = Math.max(Math.round((count / maxDist) * 100), count > 0 ? 8 : 0)
           return (
             <div key={n} className="flex items-center gap-2">
-              <span className="font-mono text-xs text-zinc-600 dark:text-zinc-400 w-3 shrink-0">{n}</span>
+              <span className="font-mono text-xs text-zinc-600 dark:text-zinc-300 w-3 shrink-0">{n}</span>
               <div className="flex-1 h-6 bg-zinc-200 dark:bg-zinc-700 rounded-sm overflow-hidden">
                 <div
-                  className="h-full bg-zinc-700 dark:bg-zinc-400 rounded-sm flex items-center justify-end pr-1.5 transition-all"
+                  className="h-full bg-zinc-600 dark:bg-zinc-400 rounded-sm flex items-center justify-end pr-1.5 transition-all"
                   style={{ width: `${pct}%` }}
                 >
                   {count > 0 && (
-                    <span className="font-mono text-[10px] text-white dark:text-zinc-900 leading-none">{count}</span>
+                    <span className="font-mono text-xs text-white dark:text-zinc-900 leading-none">{count}</span>
                   )}
                 </div>
               </div>

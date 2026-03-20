@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 
 type Theme = 'light' | 'auto' | 'dark'
 
@@ -12,47 +12,54 @@ function applyTheme(theme: Theme) {
 }
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>('auto')
+  const [theme, setTheme] = useState<Theme | null>(null)
 
-  // Read stored preference on mount
+  // Read stored preference on mount — no writes until we know the real value
   useEffect(() => {
-    const stored = (localStorage.getItem('theme') as Theme | null) ?? 'auto'
-    setTheme(stored)
+    const stored = localStorage.getItem('theme')
+    setTheme(stored === 'light' || stored === 'dark' ? stored : 'auto')
   }, [])
 
-  // Apply theme and persist; in auto mode track system changes
+  const handleChange = useCallback((value: Theme) => {
+    localStorage.setItem('theme', value)
+    applyTheme(value)
+    setTheme(value)
+  }, [])
+
+  // In auto mode, track system changes
   useEffect(() => {
-    localStorage.setItem('theme', theme)
-    applyTheme(theme)
-    if (theme === 'auto') {
-      const mq = window.matchMedia('(prefers-color-scheme: dark)')
-      const handler = () => applyTheme('auto')
-      mq.addEventListener('change', handler)
-      return () => mq.removeEventListener('change', handler)
-    }
+    if (theme !== 'auto') return
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const handler = () => applyTheme('auto')
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
   }, [theme])
 
+  // Don't render until we know the real theme (avoids FOUC of wrong active button)
+  if (theme === null) return <div className="w-[5.75rem] h-8" aria-hidden />
+
   const options: { value: Theme; icon: React.ReactNode; label: string }[] = [
-    { value: 'light', label: 'Light', icon: <SunIcon /> },
-    { value: 'auto',  label: 'Auto',  icon: <MonitorIcon /> },
-    { value: 'dark',  label: 'Dark',  icon: <MoonIcon /> },
+    { value: 'light', label: 'Tema chiaro', icon: <SunIcon /> },
+    { value: 'auto',  label: 'Tema automatico', icon: <MonitorIcon /> },
+    { value: 'dark',  label: 'Tema scuro', icon: <MoonIcon /> },
   ]
 
   return (
     <div
-      role="group"
+      role="radiogroup"
       aria-label="Tema"
       className="flex items-center gap-0.5 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-0.5"
     >
       {options.map(({ value, label, icon }) => (
         <button
           key={value}
-          onClick={() => setTheme(value)}
+          role="radio"
+          aria-checked={theme === value}
           aria-label={label}
-          aria-pressed={theme === value}
+          onClick={() => handleChange(value)}
           className={`flex items-center justify-center w-7 h-7 rounded-full transition-colors ${
             theme === value
-              ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900'
+              ? 'bg-zinc-800 dark:bg-zinc-200 text-white dark:text-zinc-900'
               : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'
           }`}
         >

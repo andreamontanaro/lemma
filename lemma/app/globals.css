@@ -6,28 +6,38 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-}
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-display: var(--font-playfair);
-  --font-mono: var(--font-dm-mono);
-
-  /* Gameplay semantic tokens */
   --color-correct: #0F2044;
   --color-present: #C45C1A;
   --color-absent: #C8CDD8;
   --color-tile-empty: #FFFFFF;
 }
 
-/* Dark CSS variables — applied via .dark class (set by JS) */
 .dark {
   --background: #0a0a0a;
   --foreground: #ededed;
+
+  --color-correct: #5B7EC2;
+  --color-present: #E8864A;
+  --color-absent: #464B55;
+  --color-tile-empty: #1a1a1a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --font-display: var(--font-playfair);
+  --font-mono: var(--font-dm-mono);
+
+  --color-correct: var(--color-correct);
+  --color-present: var(--color-present);
+  --color-absent: var(--color-absent);
+  --color-tile-empty: var(--color-tile-empty);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: var(--font-dm-mono), ui-monospace, monospace;
 }
