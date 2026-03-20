@@ -1,620 +1,258 @@
-\# AGENTS.md — lemma.
+# AGENTS.md — lemma · Frontend (Next.js)
 
+> Riferimento operativo per lo sviluppo del modulo frontend di **lemma**.
+> Questo file copre esclusivamente il workspace `lemma-web/` (Next.js 15). Per la logica applicativa, il database e il realtime, fare riferimento all'AGENTS.md del backend .NET.
 
+---
 
-> Riferimento operativo per lo sviluppo di \*\*lemma\*\*, un gioco di parole web-based con leaderboard giornaliera e modalità 1v1 in tempo reale.
+## Responsabilità di questo layer
 
-> Questo file è la single source of truth per architettura, convenzioni di codice, sistema visivo e logica applicativa.
+Il frontend è uno strato di presentazione puro. Non contiene logica di business, non accede direttamente al database, non conosce la parola del giorno. Ogni operazione significativa — validazione tentativi, calcolo punteggio, gestione stanze 1v1 — è delegata all'API .NET tramite fetch o tramite la connessione SignalR.
 
+Questo non è un vincolo architetturale arbitrario: è la garanzia che la parola del giorno non possa mai essere estratta ispezionando il codice client o le richieste di rete.
 
+---
 
-\---
+## Stack
 
+**Next.js 15** con App Router — React con SSR/SSG, layout annidati, loading states nativi. L'App Router gestisce il routing file-based; i Server Components sono usati dove possibile per ridurre il bundle client.
 
+**Supabase Auth (client-side)** — il frontend usa Supabase Auth esclusivamente per la gestione dell'autenticazione utente (Google OAuth, magic link, anonimo). Non usa Supabase per query dati: quello è compito del backend .NET.
 
-\## Panoramica del progetto
+**SignalR** — per la modalità 1v1, il client apre una connessione WebSocket verso l'hub `.NET` usando `@microsoft/signalr`. Non usa Supabase Realtime.
 
+**Tailwind CSS 4** — utility-first, tema chiaro/scuro con strategia `class`, design token lemma configurati in `tailwind.config.ts`.
 
+---
 
-lemma è un Wordle-like bilingue (italiano/inglese) con una forte dimensione social. L'utente gioca due partite al giorno (una per lingua), compete in una leaderboard pubblica con punteggio algoritmico da 1 a 1000, e può sfidare un amico in modalità 1v1 sincrona.
-
-
-
-Il nome "lemma" — unità minima di significato lessicale — radica il brand nel territorio della lingua. Il tono è editoriale, sobrio, mai accademico.
-
-
-
-\*\*Tagline di riferimento:\*\* "Ogni parola ha un peso." (editoriale/stampa) · "Sfida la lingua. Sfida un amico." (social/acquisizione)
-
-
-
-\---
-
-
-
-\## Stack tecnologico
-
-
-
-Il progetto è un monolite Next.js 15 con App Router. Frontend e API convivono nello stesso repository, si deployano insieme e condividono tipi TypeScript. La scelta è guidata da semplicità, costo zero iniziale e scalabilità futura.
-
-
-
-\*\*Frontend:\*\* Next.js 15 (App Router) — React con SSR/SSG, layout annidati e loading states nativi.
-
-\*\*Backend/API:\*\* Next.js Route Handlers — le API route vivono nel progetto, zero CORS, deploy unico.
-
-\*\*Database:\*\* Supabase (PostgreSQL) — relazionale gestito, Row Level Security abilitata su tutte le tabelle, tier gratuito.
-
-\*\*Auth:\*\* Supabase Auth — Google OAuth, magic link email, login anonimo con upgrade progressivo.
-
-\*\*Realtime:\*\* Supabase Realtime — WebSocket per il 1v1, sottoscrizioni ai cambiamenti di riga/tabella.
-
-\*\*Scheduling:\*\* Vercel Cron / pg\_cron — sorteggio notturno delle parole a mezzanotte CET.
-
-\*\*Deploy:\*\* Vercel — CDN globale, serverless functions, cron jobs, preview deploy da GitHub.
-
-\*\*Styling:\*\* Tailwind CSS 4 — utility-first, tema chiaro/scuro, responsive.
-
-
-
-\---
-
-
-
-\## Struttura del progetto
-
-
+## Struttura del progetto
 
 ```
-
-lemma/
-
+lemma-web/
 ├── app/
-
 │   ├── page.tsx                        # Home — selezione lingua, accesso al gioco del giorno
-
 │   ├── play/
-
-│   │   └── \[lang]/page.tsx             # Pagina di gioco (griglia, tastiera, timer)
-
+│   │   └── [lang]/page.tsx             # Pagina di gioco (griglia, tastiera, timer)
 │   ├── leaderboard/page.tsx            # Leaderboard giornaliera con filtri per lingua
-
 │   ├── 1v1/
-
 │   │   ├── page.tsx                    # Lobby — crea o entra in una stanza
-
-│   │   └── \[roomId]/page.tsx           # Partita 1v1 in tempo reale
-
-│   └── api/
-
-│       ├── guess/route.ts              # Validazione tentativo + feedback colori
-
-│       ├── score/route.ts              # Calcolo e salvataggio punteggio finale
-
-│       ├── cron/daily-word/route.ts    # Sorteggio parole (chiamato dal cron)
-
-│       └── 1v1/create/route.ts         # Creazione stanza 1v1
-
+│   │   └── [roomId]/page.tsx           # Partita 1v1 in tempo reale
 ├── lib/
-
-│   ├── supabase.ts                     # Client Supabase (browser + server)
-
-│   ├── scoring.ts                      # Algoritmo di punteggio
-
-│   └── words/                          # Dizionari IT/EN come file JSON
-
-├── components/                         # Grid, Keyboard, Tile, Timer, ScoreCard, etc.
-
+│   ├── api-client.ts                   # Wrapper fetch verso l'API .NET
+│   └── signalr-client.ts              # Client SignalR per il 1v1
+├── hooks/
+│   ├── use-game.ts                     # Stato e logica della partita giornaliera
+│   ├── use-match.ts                    # Stato e logica della partita 1v1
+│   └── use-auth.ts                     # Wrapper Supabase Auth
+├── components/
+│   ├── Grid.tsx                        # Griglia 5×6
+│   ├── Tile.tsx                        # Singola cella con stato (correct/present/absent/empty)
+│   ├── Keyboard.tsx                    # Tastiera virtuale on-screen
+│   ├── Timer.tsx                       # Countdown/cronometro
+│   ├── ScoreCard.tsx                   # Recap a fine partita (punteggio, breakdown, condivisione)
+│   ├── Leaderboard.tsx                 # Tabella classifica
+│   ├── MatchGrid.tsx                   # Griglia avversario (solo colori, niente lettere)
+│   └── OpponentProgress.tsx            # Indicatore progresso avversario in 1v1
 ├── public/
-
 │   └── fonts/                          # Playfair Display + DM Mono (self-hosted)
-
-├── vercel.json                         # Config cron job
-
-├── tailwind.config.ts                  # Design tokens lemma
-
+├── tailwind.config.ts                  # Design token lemma
 └── .env.local                          # Variabili d'ambiente (mai committate)
-
 ```
 
+---
 
-
-\---
-
-
-
-\## Schema database
-
-
-
-Il database PostgreSQL su Supabase ha cinque tabelle principali. RLS è abilitata ovunque.
-
-
-
-\### words
-
-Dizionario completo delle parole giocabili, divise per lingua.
-
-
-
-| Colonna    | Tipo        | Note                                                        |
-
-|------------|-------------|-------------------------------------------------------------|
-
-| id         | uuid PK     | Generato automaticamente                                    |
-
-| word       | varchar(5)  | Sempre lowercase. Unique constraint su (word, lang)         |
-
-| lang       | varchar(2)  | "it" o "en"                                                 |
-
-| difficulty | smallint    | Opzionale, 1–5 per curating futuro                          |
-
-| used\_on    | date        | Data in cui è stata parola del giorno (NULL = mai usata)    |
-
-
-
-\### daily\_words
-
-Source of truth per la parola del giorno. Popolata dal cron a mezzanotte.
-
-
-
-| Colonna | Tipo       | Note                                        |
-
-|---------|------------|---------------------------------------------|
-
-| id      | uuid PK    | Generato automaticamente                    |
-
-| date    | date       | Unique constraint su (date, lang)           |
-
-| lang    | varchar(2) | "it" o "en"                                 |
-
-| word\_id | uuid FK    | Riferimento a words.id                      |
-
-
-
-\### game\_sessions
-
-Ogni partita giocata da un utente, con tentativi, tempo e punteggio.
-
-
-
-| Colonna       | Tipo         | Note                                                        |
-
-|---------------|--------------|-------------------------------------------------------------|
-
-| id            | uuid PK      | Generato automaticamente                                    |
-
-| user\_id       | uuid FK      | → auth.users.id. Unique su (user\_id, daily\_word\_id)        |
-
-| daily\_word\_id | uuid FK      | → daily\_words.id                                            |
-
-| guesses       | jsonb        | Array: \[{"word": "canto", "result": \["green","gray",...]}]  |
-
-| solved        | boolean      | Se l'utente ha indovinato                                   |
-
-| time\_seconds  | integer      | Dal primo input all'ultimo tentativo                        |
-
-| score         | integer      | 1–1000, NULL se non risolto                                 |
-
-| created\_at    | timestamptz  | Timestamp inizio partita                                    |
-
-
-
-\### matches (1v1)
-
-Stanze di gioco per la modalità 1v1.
-
-
-
-| Colonna     | Tipo         | Note                                                   |
-
-|-------------|--------------|--------------------------------------------------------|
-
-| id          | uuid PK      | Anche room ID per il link di invito                    |
-
-| player1\_id  | uuid FK      | Chi ha creato la stanza                                |
-
-| player2\_id  | uuid FK      | NULL finché il secondo giocatore non entra             |
-
-| word        | varchar(5)   | Parola random scelta alla creazione                    |
-
-| lang        | varchar(2)   | Lingua scelta dal creatore                             |
-
-| status      | varchar(20)  | "waiting" → "playing" → "finished"                     |
-
-| p1\_guesses  | jsonb        | Tentativi player 1                                     |
-
-| p2\_guesses  | jsonb        | Tentativi player 2                                     |
-
-| winner\_id   | uuid FK      | NULL se pareggio o in corso                            |
-
-| created\_at  | timestamptz  | Timestamp creazione                                    |
-
-
-
-\### Policy RLS da rispettare
-
-
-
-Ogni utente legge solo le proprie `game\_sessions`. La leaderboard (vista aggregata) è pubblica in lettura. Le `matches` sono leggibili solo dai due partecipanti. `words` e `daily\_words` sono leggibili da tutti ma scrivibili solo dal service role (cron job e API server-side).
-
-
-
-\---
-
-
-
-\## Flussi applicativi
-
-
-
-\### Gioco giornaliero
-
-
-
-L'utente seleziona la lingua → il client verifica se ha già giocato oggi (query su `game\_sessions`) → se non ha giocato, si carica la griglia e il timer parte al primo input → ad ogni tentativo il client invia la parola a `POST /api/guess`, il server la valida contro il dizionario, la confronta con la parola del giorno e restituisce il feedback colorato → il client aggiorna griglia e tastiera → a partita conclusa il client chiama `POST /api/score` per calcolare e salvare il punteggio → viene mostrato il recap.
-
-
-
-\*\*Regola critica:\*\* la parola del giorno non viene MAI inviata al client. Tutta la logica di confronto avviene server-side nelle API route, che accedono a Supabase tramite il service role key. Il client non conosce la soluzione fino a fine partita.
-
-
-
-\### Sorteggio parole (cron, 00:00 CET)
-
-
-
-L'endpoint `GET /api/cron/daily-word` viene invocato dal cron di Vercel. Per ciascuna lingua seleziona una parola random da `words` dove `used\_on IS NULL`, inserisce una riga in `daily\_words`, aggiorna `used\_on` nella parola scelta. L'endpoint è protetto dall'header `CRON\_SECRET`. Nel `vercel.json` l'orario è 23:00 UTC (mezzanotte CET in inverno; accettare lo shift di un'ora in estate oppure gestire il cambio DST).
-
-
-
-\### Modalità 1v1
-
-
-
-Player 1 chiama `POST /api/1v1/create` → il server genera un UUID, sceglie una parola random, crea la riga in `matches` con status "waiting" → Player 1 riceve un link (es. `lemma.app/1v1/abc-123`) da condividere → Player 2 apre il link, si autentica, il sistema aggiorna `player2\_id` e status a "playing" → entrambi i client si sottoscrivono via Supabase Realtime alla riga match → ad ogni tentativo il server aggiorna `p1\_guesses` o `p2\_guesses`, l'avversario vede apparire i colori in tempo reale (solo i colori, mai le lettere) → quando uno indovina o entrambi esauriscono i tentativi, status diventa "finished" e viene determinato il vincitore.
-
-
-
-\---
-
-
-
-\## Algoritmo di punteggio
-
-
-
-Il punteggio va da 1 a 1000 ed è la somma di tre componenti.
-
-
-
-\### Componente tentativi (50% — max 500 punti)
-
-
-
-| Tentativi | Punti |
-
-|-----------|-------|
-
-| 1         | 500   |
-
-| 2         | 450   |
-
-| 3         | 375   |
-
-| 4         | 275   |
-
-| 5         | 150   |
-
-| 6         | 50    |
-
-
-
-\### Componente tempo (30% — max 300 punti)
-
-
-
-I primi 30 secondi non penalizzano. Poi la penalizzazione cresce logaritmicamente fino a un floor di 30 punti a \~5 minuti.
-
-
-
-```
-
-tempo\_score = max(30, 300 - 50 \* ln(max(1, secondi - 30)))
-
-```
-
-
-
-\### Componente qualità (20% — max 200 punti)
-
-
-
-Premia chi evita di ripetere lettere già grigie. Ogni lettera ripetuta inutilmente sottrae 25 punti.
-
-
-
-```
-
-qualita\_score = max(0, 200 - 25 \* lettere\_ripetute\_grigie)
-
-```
-
-
-
-\### Punteggio finale
-
-
-
-```
-
-score = clamp(tentativi\_score + tempo\_score + qualita\_score, 1, 1000)
-
-```
-
-
-
-Il 1000 perfetto è raggiungibile solo indovinando al primo tentativo in meno di 30 secondi senza ripetizioni — praticamente irraggiungibile, di design.
-
-
-
-Il file `lib/scoring.ts` esporta una funzione pura `calculateScore({ guesses, timeSeconds, dailyWord })` che restituisce `{ total, attempts, time, quality }`.
-
-
-
-\---
-
-
-
-\## Autenticazione
-
-
-
-L'approccio è progressivo: gioco anonimo per tutti, autenticazione richiesta solo per leaderboard e 1v1.
-
-
-
-\*\*Gioco anonimo:\*\* l'utente gioca senza registrarsi. I dati si salvano in localStorage e opzionalmente come utente anonimo Supabase.
-
-\*\*Leaderboard e 1v1:\*\* richiedono login con Google OAuth o magic link email. Un utente anonimo può fare upgrade senza perdere la partita in corso.
-
-
-
-Le API route che modificano dati (guess, score, cron) validano il JWT tramite Supabase Auth middleware. Rate limiting via middleware Vercel per prevenire brute-force su `/api/guess` (max 6 tentativi per partita, ma serve anche protezione a livello di rete per IP).
-
-
-
-\---
-
-
-
-\## Variabili d'ambiente
-
-
+## Variabili d'ambiente
 
 ```env
-
-NEXT\_PUBLIC\_SUPABASE\_URL=         # URL progetto Supabase (pubblica)
-
-NEXT\_PUBLIC\_SUPABASE\_ANON\_KEY=    # Anon key Supabase (pubblica, limitata da RLS)
-
-SUPABASE\_SERVICE\_ROLE\_KEY=        # Service role key (segreta, solo server-side)
-
-CRON\_SECRET=                      # Header segreto per endpoint cron
-
+NEXT_PUBLIC_API_URL=              # URL base dell'API .NET (es. https://api.lemma.app)
+NEXT_PUBLIC_SUPABASE_URL=         # URL progetto Supabase (per Auth client-side)
+NEXT_PUBLIC_SUPABASE_ANON_KEY=    # Anon key Supabase (limitata da RLS, solo per Auth)
 ```
 
-
-
-Non committare mai `.env.local`. Usare le environment variables di Vercel per il deploy.
-
-
-
-\---
-
-
-
-\## Identità visiva e design system
-
-
-
-\### Posizionamento
-
-
-
-Editoriale, sobrio, distintivo, accessibile. La lingua ha peso e l'estetica lo riflette senza diventare fredda. Ogni scelta visiva è intenzionale: il silenzio visivo è deliberato quanto la presenza del colore.
-
-
-
-\### Logo
-
-
-
-Il logotipo è "lemma" in Playfair Display bold italic seguito da un punto in burnt orange (#C45C1A). Il corsivo bold crea tensione visiva; il punto arancio è l'unico elemento cromatico e richiama il colore delle tile "presente" nella griglia, legando identità e gameplay. Tre varianti: su bianco, su navy, su pale blue. Il punto arancio resta invariato in tutte.
-
-
-
-\### Palette cromatica
-
-
-
-Il sistema cromatico usa la famiglia del blu notte con un solo colore caldo (burnt orange) come accento. Non servono verde e giallo convenzionali: la distinzione tra stati avviene per temperatura e luminosità.
-
-
-
-\*\*Colori di gameplay (da usare nei componenti Tile e Keyboard):\*\*
-
-
-
-```
-
-\--color-correct:    #0F2044   /\* Navy — lettera corretta nella posizione giusta \*/
-
-\--color-present:    #C45C1A   /\* Burnt orange — lettera presente, posizione errata \*/
-
-\--color-absent:     #C8CDD8   /\* Stone — lettera assente \*/
-
-\--color-empty:      #FFFFFF   /\* White — tile vuota / in fase di digitazione \*/
-
-```
-
-
-
-\*\*Colori di interfaccia:\*\*
-
-
-
-```
-
-\--color-surface:          #F8F9FC   /\* Sfondo pagina \*/
-
-\--color-surface-alt:      #EDF2FA   /\* Pale blue — superficie secondaria \*/
-
-\--color-accent:           #2D5BE3   /\* Accent blue — link, CTA \*/
-
-\--color-border:           #E2E6EF   /\* Bordi e divisori \*/
-
-\--color-muted:            #6B7280   /\* Testo secondario \*/
-
-\--color-correct-text:     #FFFFFF   /\* Testo su tile navy \*/
-
-\--color-present-text:     #FFFFFF   /\* Testo su tile burnt orange \*/
-
-\--color-absent-text:      #3B3F47   /\* Testo su tile stone \*/
-
-```
-
-
-
-\*\*Nota accessibilità:\*\* navy/burnt orange sono distinguibili anche in caso di deuteranopia (daltonismo rosso-verde più diffuso). I colori si differenziano per luminosità e temperatura, non solo per tinta.
-
-
-
-\### Tipografia
-
-
-
-Due famiglie con ruoli distinti. Self-hostare entrambe in `/public/fonts/` per performance.
-
-
-
-\*\*Playfair Display\*\* — il carattere editoriale.
-
-Usare per: logo/wordmark, titoli di sezione e pagina, lettere nelle tile di gioco (bold italic), testi editoriali e commenti (italic).
-
-
-
-\*\*DM Mono\*\* — il carattere funzionale.
-
-Usare per: label UI (tentativi, timer, punteggio), body text e messaggi di sistema, navigazione e microcopy, valori numerici e statistiche.
-
-
-
-```css
-
-/\* Configurazione Tailwind \*/
-
-fontFamily: {
-
-&#x20; display: \['"Playfair Display"', 'Georgia', 'serif'],
-
-&#x20; mono: \['"DM Mono"', 'ui-monospace', 'monospace'],
-
+Il frontend non usa `SUPABASE_SERVICE_ROLE_KEY` né `CRON_SECRET`. Quelle variabili esistono solo nel backend .NET.
+
+---
+
+## Comunicazione con il backend
+
+Tutte le chiamate all'API .NET passano per `lib/api-client.ts`, che si occupa di allegare automaticamente il JWT di Supabase Auth nell'header `Authorization: Bearer {token}`. Non fare fetch diretti ai endpoint .NET dall'interno dei componenti.
+
+```typescript
+// lib/api-client.ts — pattern atteso
+export async function apiPost<T>(path: string, body: unknown): Promise<T> {
+  const session = await supabase.auth.getSession();
+  const token = session.data.session?.access_token;
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${path}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+  return res.json();
 }
-
 ```
 
+### Endpoint utilizzati dal frontend
 
+| Endpoint                          | Metodo | Quando                                              |
+|-----------------------------------|--------|-----------------------------------------------------|
+| `/api/guess`                      | POST   | Ad ogni tentativo nella partita giornaliera         |
+| `/api/score`                      | POST   | A fine partita (vittoria o 6 tentativi esauriti)    |
+| `/api/leaderboard`                | GET    | Caricamento della pagina leaderboard                |
+| `/api/matches`                    | POST   | Player 1 crea una stanza 1v1                        |
+| `/api/matches/{roomId}/join`      | POST   | Player 2 entra nella stanza                         |
 
-\### Tile di gioco
+Il frontend non chiama mai endpoint relativi al cron o al sorteggio parole — quelli sono interni al backend.
 
+---
 
+## Modalità 1v1 — SignalR
 
-Le tile sono il cuore visivo. La lettera è in Playfair Display bold italic — questo conferisce una presenza tipografica forte, distante dal look piatto dei concorrenti. I tre colori di stato (navy, burnt orange, stone) più il bianco per lo stato vuoto eliminano qualsiasi ambiguità percettiva.
+La connessione SignalR è gestita in `lib/signalr-client.ts` e consumata tramite `hooks/use-match.ts`. Il client si connette all'hub `/hubs/match` sul backend .NET.
 
+```typescript
+// lib/signalr-client.ts — pattern atteso
+import * as signalR from '@microsoft/signalr';
 
+export function createMatchConnection(apiUrl: string, token: string) {
+  return new signalR.HubConnectionBuilder()
+    .withUrl(`${apiUrl}/hubs/match`, {
+      accessTokenFactory: () => token,
+    })
+    .withAutomaticReconnect()
+    .build();
+}
+```
 
-Nella modalità 1v1 la griglia avversario mostra solo i colori, mai le lettere. L'utente percepisce il progresso dell'avversario (quante tile navy, quante burnt, quante stone) senza ricevere indizi sulla parola. Questa asimmetria informativa è il motore della tensione.
+### Eventi SignalR gestiti dal frontend
 
+| Evento ricevuto          | Cosa fa il frontend                                                 |
+|--------------------------|---------------------------------------------------------------------|
+| `OpponentGuessUpdate`    | Aggiorna la griglia avversario con i nuovi colori (niente lettere)  |
+| `MatchFinished`          | Mostra il recap di fine partita con vincitore e statistiche         |
 
+| Evento inviato           | Quando                                                              |
+|--------------------------|---------------------------------------------------------------------|
+| `JoinMatch`              | Subito dopo aver aperto la pagina `/1v1/[roomId]`                   |
+| `SubmitGuess`            | Dopo ogni tentativo validato dal backend via REST                   |
 
-\---
+**Regola critica:** il frontend invia `SubmitGuess` via SignalR solo *dopo* aver ricevuto risposta dall'endpoint REST `/api/guess`. La validazione resta sempre server-side; SignalR serve solo per la propagazione real-time del risultato all'avversario.
 
+---
 
+## Autenticazione
 
-\## Convenzioni di codice
+L'autenticazione è progressiva: si può giocare la partita giornaliera senza account. Leaderboard e 1v1 richiedono login.
 
+`hooks/use-auth.ts` wrappa `supabase.auth` ed espone `{ user, session, signIn, signOut, upgradeAnonymous }`. I componenti non importano Supabase direttamente — usano questo hook.
 
+**Gioco anonimo:** i tentativi della partita giornaliera vengono salvati in `localStorage` finché l'utente non effettua il login. All'upgrade, la partita in corso non va persa.
 
-\### TypeScript
+**Flusso JWT:** quando l'utente si autentica, `api-client.ts` legge il JWT dalla sessione Supabase e lo allega ad ogni richiesta verso il backend .NET. Il backend valida il token indipendentemente — il frontend non gestisce nulla di questa validazione.
 
+---
 
+## Design system
 
-Tutto il progetto è in TypeScript strict. Definire i tipi per ogni entità del database in un file `lib/types.ts` condiviso tra client e server. Preferire `interface` per le entità e `type` per le union e utility types. Non usare `any`: se il tipo non è noto, usare `unknown` e restringere con type guard.
+### Palette (token Tailwind)
 
+```typescript
+// tailwind.config.ts — estensione tema
+colors: {
+  correct:   '#0F2044',   // Navy — lettera corretta nella posizione giusta
+  present:   '#C45C1A',   // Burnt orange — lettera presente, posizione errata
+  absent:    '#C8CDD8',   // Stone — lettera assente
+  empty:     '#FFFFFF',   // Tile vuota / in digitazione
+  surface:   '#F8F9FC',   // Sfondo pagina
+  'surface-alt': '#EDF2FA', // Pale blue — superficie secondaria
+  accent:    '#2D5BE3',   // Link, CTA
+  border:    '#E2E6EF',
+  muted:     '#6B7280',
+}
+```
 
+Usare sempre i nomi semantici (`bg-correct`, `bg-present`, `bg-absent`) — mai gli hex direttamente nel JSX.
 
-\### Componenti React
+### Tipografia
 
+```typescript
+// tailwind.config.ts
+fontFamily: {
+  display: ['"Playfair Display"', 'Georgia', 'serif'],
+  mono:    ['"DM Mono"', 'ui-monospace', 'monospace'],
+}
+```
 
+**Playfair Display** — logo, titoli di sezione, lettere nelle tile (bold italic), testi editoriali.
+**DM Mono** — label UI (tentativi, timer, punteggio), body text, navigazione, valori numerici.
 
-Usare function components con hooks. Nomi in PascalCase, un componente per file. Separare la logica di stato dalla presentazione dove possibile (custom hooks in `hooks/`). I componenti della griglia e della tastiera devono essere controllati: ricevono stato e callback via props, non gestiscono fetch interni.
+I font sono self-hostati in `/public/fonts/`. Non usare Google Fonts CDN in produzione.
 
+### Tile di gioco
 
+La lettera nella tile è in Playfair Display bold italic. I quattro stati corrispondono ai quattro colori semantici: `correct`, `present`, `absent`, `empty`. Le transizioni di colore avvengono con una flip animation al momento della rivelazione (una tile alla volta, sinistra→destra).
 
-\### API route
+Nella griglia avversario (`MatchGrid.tsx`) le tile mostrano solo il colore di sfondo, senza lettera. L'utente vede quante tile navy, quante burnt, quante stone — ma non ha indizi sulla parola.
 
+---
 
+## Convenzioni di codice
 
-Ogni route handler in `app/api/` segue questo pattern: validazione input → autenticazione (se richiesta) → logica business → risposta JSON. Restituire sempre `NextResponse.json()` con status code appropriati. Centralizzare la gestione errori in un helper `lib/api-utils.ts`. Le route che accedono alla parola del giorno usano esclusivamente il Supabase client con service role.
+**TypeScript strict** ovunque. I tipi delle risposte API sono definiti in `lib/types.ts` e devono rispecchiare i DTO del backend .NET. Non usare `any`: se il tipo non è noto, usare `unknown` con type guard.
 
+**Componenti React** come function components con hooks. Nomi in PascalCase, un componente per file. I componenti `Grid`, `Keyboard`, `Tile` sono controllati — ricevono stato e callback via props, non gestiscono fetch interni. La logica di stato vive negli hook custom in `hooks/`.
 
+**API calls** sempre attraverso `lib/api-client.ts`. Mai `fetch` diretto nei componenti o nelle pagine.
 
-\### Stile e CSS
+**SignalR** sempre attraverso `lib/signalr-client.ts` e `hooks/use-match.ts`. Mai istanziare `HubConnectionBuilder` nei componenti.
 
+**Stile** esclusivamente Tailwind utility classes. CSS custom solo in casi eccezionali, documentati inline. Dark mode con strategia `class`.
 
+**Naming:** file in kebab-case tranne i componenti React (PascalCase). Hook custom in `hooks/use-*.ts`.
 
-Usare esclusivamente Tailwind CSS utility classes. I design token (colori, font) vanno definiti in `tailwind.config.ts` come estensioni del tema, usando i nomi semantici della palette lemma (correct, present, absent, surface, accent, etc.). Non scrivere CSS custom salvo casi eccezionali documentati. Supportare dark mode con la strategia `class` di Tailwind.
+**Commit** in inglese, formato convenzionale: `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`.
 
+---
 
+## Flussi UI
 
-\### File e naming
+### Partita giornaliera
 
+Home → selezione lingua → `hooks/use-game.ts` verifica se l'utente ha già giocato oggi (controlla `localStorage` per anonimi, chiama `/api/leaderboard` o deduce dallo stato sessione per utenti autenticati) → se già giocato, mostra il recap → altrimenti carica la griglia.
 
+Il timer parte al primo input sulla tastiera. Ad ogni invio, il hook chiama `apiPost('/api/guess', { word, lang, date })` e aggiorna lo stato con il feedback ricevuto. A partita conclusa, chiama `apiPost('/api/score', { guesses, timeSeconds })` e mostra `ScoreCard`.
 
-Nomi file in kebab-case per tutto tranne i componenti React (PascalCase). Le API route seguono la convenzione Next.js (`route.ts`). I tipi condivisi vivono in `lib/types.ts`. Gli hook custom in `hooks/use-\*.ts`.
+### Partita 1v1
 
+Player 1: lobby → `apiPost('/api/matches', { lang })` → riceve `roomId` → mostra link di invito → apre connessione SignalR e attende Player 2.
 
+Player 2: apre `lemma.app/1v1/{roomId}` → login se necessario → `apiPost('/api/matches/{roomId}/join')` → apre connessione SignalR.
 
-\### Commit
+Entrambi: connessione SignalR stabilita, `JoinMatch` inviato → partita inizia → ad ogni tentativo, prima REST poi SignalR → `MatchGrid.tsx` si aggiorna quando arriva `OpponentGuessUpdate` → fine partita su `MatchFinished`.
 
+---
 
+## Cosa NON fa questo layer
 
-Commit message in inglese, formato convenzionale: `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`. Un commit per unità logica di lavoro.
+- Non accede direttamente a PostgreSQL o Supabase per dati di gioco.
+- Non calcola il punteggio.
+- Non valida se una parola esiste nel dizionario.
+- Non conosce la parola del giorno in nessun momento della partita.
+- Non gestisce il cron di sorteggio parole.
+- Non usa Supabase Realtime (sostituito da SignalR gestito dal backend .NET).
+- Non integra layer AI — i commenti a fine partita non sono parte di questo modulo.
 
+---
 
+## Roadmap frontend
 
-\---
+**Fase 1 — Setup:** init Next.js 15 + TypeScript strict + Tailwind con design token lemma. Self-hosting font. Setup `lib/api-client.ts` e `hooks/use-auth.ts`. Verifica flusso JWT con endpoint `.NET` di test.
 
+**Fase 2 — MVP:** `Grid`, `Tile`, `Keyboard` con animazioni flip. `hooks/use-game.ts` completo. Integrazione con `/api/guess` e `/api/score`. `ScoreCard` con punteggio e pattern emoji per condivisione. Deploy su Vercel con `NEXT_PUBLIC_API_URL` puntato al backend Railway.
 
+**Fase 3 — Social:** pagina leaderboard con `Leaderboard.tsx`. Profilo utente con storico partite. PWA: manifest, service worker, supporto offline minimale.
 
-\## Roadmap
-
-
-
-\*\*Fase 1 — Setup e fondamenta:\*\* init Next.js + TypeScript + Tailwind, setup Supabase (schema, RLS), auth (Google OAuth + anonimo), import dizionari IT/EN.
-
-
-
-\*\*Fase 2 — Gameplay core (MVP):\*\* griglia 5×6, tastiera virtuale, animazioni tile, API guess + score, cron sorteggio giornaliero, pagina risultato con punteggio e condivisione.
-
-
-
-\*\*Fase 3 — Leaderboard e social:\*\* leaderboard giornaliera pubblica, profilo utente con storico e stats, condivisione risultati (pattern emoji), PWA (manifest, service worker).
-
-
-
-\*\*Fase 4 — Modalità 1v1:\*\* Supabase Realtime, lobby creazione stanza, invito via link, UI split-screen (griglia propria + griglia avversario solo colori), gestione timeout e disconnessione.
-
+**Fase 4 — 1v1:** `lib/signalr-client.ts` e `hooks/use-match.ts`. Pagina `/1v1/[roomId]` con layout split-screen (`Grid` propria + `MatchGrid` avversario). Gestione disconnessione e riconnessione automatica SignalR.
