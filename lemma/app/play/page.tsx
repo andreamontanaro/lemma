@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import PlayButton from '@/components/PlayButton'
 import SignOutButton from '@/components/SignOutButton'
+import HowToPlayModal from '@/components/HowToPlayModal'
 
 interface Session {
   completed: boolean
@@ -102,31 +103,41 @@ export default async function PlayPage() {
         ))}
       </div>
 
-      {/* Win distribution */}
-      <div className="w-full flex flex-col gap-2">
-        <p className="font-mono text-xs text-zinc-600 dark:text-zinc-300 uppercase tracking-widest">
-          Distribuzione vittorie
-        </p>
-        {[1, 2, 3, 4, 5, 6].map(n => {
-          const count = stats.distribution[n]
-          const pct = Math.max(Math.round((count / maxDist) * 100), count > 0 ? 8 : 0)
-          return (
-            <div key={n} className="flex items-center gap-2">
-              <span className="font-mono text-xs text-zinc-600 dark:text-zinc-300 w-3 shrink-0">{n}</span>
-              <div className="flex-1 h-6 bg-zinc-200 dark:bg-zinc-700 rounded-sm overflow-hidden">
-                <div
-                  className="h-full bg-zinc-600 dark:bg-zinc-400 rounded-sm flex items-center justify-end pr-1.5 transition-all"
-                  style={{ width: `${pct}%` }}
-                >
-                  {count > 0 && (
-                    <span className="font-mono text-xs text-white dark:text-zinc-900 leading-none">{count}</span>
-                  )}
+      {/* Distribution or intro */}
+      {stats.played > 0 ? (
+        <div className="w-full flex flex-col gap-2">
+          <p className="font-mono text-xs text-zinc-600 dark:text-zinc-300 uppercase tracking-widest">
+            Distribuzione vittorie
+          </p>
+          {[1, 2, 3, 4, 5, 6].map(n => {
+            const count = stats.distribution[n]
+            const pct = Math.max(Math.round((count / maxDist) * 100), count > 0 ? 8 : 0)
+            return (
+              <div key={n} className="flex items-center gap-2">
+                <span className="font-mono text-xs text-zinc-600 dark:text-zinc-300 w-3 shrink-0">{n}</span>
+                <div className="flex-1 h-6 bg-zinc-200 dark:bg-zinc-700 rounded-sm overflow-hidden">
+                  <div
+                    className="h-full bg-zinc-600 dark:bg-zinc-400 rounded-sm flex items-center justify-end pr-1.5 transition-all"
+                    style={{ width: `${pct}%` }}
+                  >
+                    {count > 0 && (
+                      <span className="font-mono text-xs text-white dark:text-zinc-900 leading-none">{count}</span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          )
-        })}
-      </div>
+            )
+          })}
+        </div>
+      ) : (
+        <div className="w-full flex flex-col items-center gap-3 py-2 text-center">
+          <p className="font-mono text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
+            Indovina la parola del giorno in <strong className="text-zinc-900 dark:text-zinc-100">6 tentativi</strong>.
+            Ogni risposta deve essere una parola valida di <strong className="text-zinc-900 dark:text-zinc-100">5 lettere</strong>.
+          </p>
+          <HowToPlayModal />
+        </div>
+      )}
 
       <PlayButton />
     </main>

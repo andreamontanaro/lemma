@@ -27,13 +27,19 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  --font-display: var(--font-playfair);
+  /* Override Tailwind's default mono stack with DM Mono */
   --font-mono: var(--font-dm-mono);
 
   --color-correct: var(--color-correct);
   --color-present: var(--color-present);
   --color-absent: var(--color-absent);
   --color-tile-empty: var(--color-tile-empty);
+}
+
+/* font-display can't go through @theme — it conflicts with the CSS font-display
+   descriptor used inside @font-face. Define the utility class directly instead. */
+.font-display {
+  font-family: var(--font-playfair), Georgia, serif;
 }
 
 body {
